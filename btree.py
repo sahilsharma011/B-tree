@@ -1,6 +1,9 @@
 import bisect
 import itertools
 import operator
+import os
+import time
+from input import createfile
 
 
 class _BNode(object):
@@ -12,7 +15,7 @@ class _BNode(object):
         self.children = children or []
         if self.children:
             assert len(self.contents) + 1 == len(self.children), \
-                    "one more child than data item required"
+                "one more child than data item required"
 
     def __repr__(self):
         name = getattr(self, "children", 0) and "Branch" or "Leaf"
@@ -40,7 +43,7 @@ class _BNode(object):
                 left_sib = parent.children[parent_index - 1]
                 if len(left_sib.contents) < self.tree.order:
                     self.lateral(
-                            parent, parent_index, left_sib, parent_index - 1)
+                        parent, parent_index, left_sib, parent_index - 1)
                     return
 
             # try the right neighbor
@@ -48,7 +51,7 @@ class _BNode(object):
                 right_sib = parent.children[parent_index + 1]
                 if len(right_sib.contents) < self.tree.order:
                     self.lateral(
-                            parent, parent_index, right_sib, parent_index + 1)
+                        parent, parent_index, right_sib, parent_index + 1)
                     return
 
         center = len(self.contents) // 2
@@ -56,7 +59,7 @@ class _BNode(object):
 
         if not parent:
             parent, parent_index = self.tree.BRANCH(
-                    self.tree, children=[self]), 0
+                self.tree, children=[self]), 0
             self.tree._root = parent
 
         # pass the median up to the parent
@@ -113,9 +116,9 @@ class _BNode(object):
         center = len(self.contents) // 2
         median = self.contents[center]
         sibling = type(self)(
-                self.tree,
-                self.contents[center + 1:],
-                self.children[center + 1:])
+            self.tree,
+            self.contents[center + 1:],
+            self.children[center + 1:])
         self.contents = self.contents[:center]
         self.children = self.children[:center + 1]
         return sibling, median
@@ -147,7 +150,7 @@ class _BNode(object):
             descendent = self.children[index]
             while descendent.children:
                 additional_ancestors.append(
-                        (descendent, len(descendent.children) - 1))
+                    (descendent, len(descendent.children) - 1))
                 descendent = descendent.children[-1]
             ancestors.extend(additional_ancestors)
             self.contents[index] = descendent.contents[-1]
@@ -189,10 +192,10 @@ class _BPlusLeaf(_BNode):
         center = len(self.contents) // 2
         median = self.contents[center - 1]
         sibling = type(self)(
-                self.tree,
-                self.contents[center:],
-                self.data[center:],
-                self.next)
+            self.tree,
+            self.contents[center:],
+            self.data[center:],
+            self.next)
         self.contents = self.contents[:center]
         self.data = self.data[:center]
         self.next = sibling
@@ -495,10 +498,10 @@ class BPlusTree(BTree):
             seps.append(last_two[minimum])
 
         leaves = [self.LEAF(
-                self,
-                contents=[p[0] for p in pairs],
-                data=[p[1] for p in pairs])
-            for pairs in leaves]
+            self,
+            contents=[p[0] for p in pairs],
+            data=[p[1] for p in pairs])
+                  for pairs in leaves]
 
         for i in xrange(len(leaves) - 1):
             leaves[i].next = leaves[i + 1]
@@ -506,77 +509,42 @@ class BPlusTree(BTree):
         return leaves, [s[0] for s in seps]
 
 
-import random
-import unittest
-
-
-class BTreeTests(unittest.TestCase):
-    def test_additions(self):
-        bt = BTree(20)
-        l = range(2000)
-        for i, item in enumerate(l):
-            bt.insert(item)
-            self.assertEqual(list(bt), l[:i + 1])
-
-    def test_bulkloads(self):
-        bt = BTree.bulkload(range(2000), 20)
-        self.assertEqual(list(bt), range(2000))
-
-    def test_removals(self):
-        bt = BTree(20)
-        l = range(2000)
-        map(bt.insert, l)
-        rand = l[:]
-        random.shuffle(rand)
-        while l:
-            self.assertEqual(list(bt), l)
-            rem = rand.pop()
-            l.remove(rem)
-            bt.remove(rem)
-        self.assertEqual(list(bt), l)
-
-    def test_insert_regression(self):
-        bt = BTree.bulkload(range(2000), 50)
-
-        for i in xrange(100000):
-            bt.insert(random.randrange(2000))
-
-
-class BPlusTreeTests(unittest.TestCase):
-    def test_additions_sorted(self):
-        bt = BPlusTree(20)
-        l = range(2000)
-
-        for item in l:
-            bt.insert(item, str(item))
-
-        for item in l:
-            self.assertEqual(str(item), bt[item])
-
-        self.assertEqual(l, list(bt))
-
-    def test_additions_random(self):
-        bt = BPlusTree(20)
-        l = range(2000)
-        random.shuffle(l)
-
-        for item in l:
-            bt.insert(item, str(item))
-
-        for item in l:
-            self.assertEqual(str(item), bt[item])
-
-        self.assertEqual(range(2000), list(bt))
-
-    def test_bulkload(self):
-        bt = BPlusTree.bulkload(zip(range(2000), map(str, range(2000))), 20)
-
-        self.assertEqual(list(bt), range(2000))
-
-        self.assertEqual(
-                list(bt.iteritems()),
-                zip(range(2000), map(str, range(2000))))
-
-
 if __name__ == '__main__':
-    unittest.main()
+    cont = True
+    print('1. Bulk Insert into B-Tree\n'
+          '2. Insert single element into B-Tree\n'
+          '3. Search element from B-Tree\n'
+          '4. Delete an element from B-Tree\n')
+    bt = BTree(20)
+    while cont:
+        choice = raw_input('Choose an option: \n')
+        if int(choice) == 1:
+            start_time = time.time()
+            name = 'numbers'
+            number = raw_input("Enter the number of objects you want to write in the file:  ")
+            createfile(name, number)
+            file = open(os.getcwd() + '/' + name + '.txt', 'r')
+            numbers = file.read().split('\n')
+            for number in numbers:
+                bt.insert(number)
+            file.close()
+            total_time = time.time() - start_time
+        elif int(choice) == 2:
+            number = raw_input("Enter the number :  ")
+            bt.insert(number)
+        elif int(choice) == 3:
+            number = raw_input("Enter the number :  ")
+            if bt._present(number, bt._path_to(number)):
+                print('Number present')
+            else:
+                print('Number not present')
+        elif int(choice) == 4:
+            number = raw_input("Enter the number :  ")
+            bt.remove(number)
+        else:
+            print('Wrong Option')
+        print bt
+        if raw_input("Continue ?\n  ") == 'y':
+            cont = True
+        else:
+            cont = False
